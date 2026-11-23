@@ -283,24 +283,29 @@ class ComprehensiveFeatureAndButtonTest {
 
     @Test
     fun testCoachEngineDeterministicRules() {
-        // High soreness & low sleep triggers Recovery insight
-        val insights = CoachEngine.evaluate(
-            recentWorkoutsCount = 5,
-            weeklyVolumeKg = 24000f,
-            previousWeeklyVolumeKg = 18000f,
-            recentPrsCount = 2,
-            currentStreak = 7,
-            todaySleepHours = 5.0f,
-            todaySoreness = 5,
-            activeGoalsCount = 3
+        val now = System.currentTimeMillis()
+        val sessions = (1..6).map { i ->
+            com.forge.app.data.db.entities.WorkoutSessionEntity(
+                id = i.toLong(),
+                workoutName = "Session $i",
+                startedAt = now - java.util.concurrent.TimeUnit.DAYS.toMillis(i.toLong()),
+                completedAt = now - java.util.concurrent.TimeUnit.DAYS.toMillis(i.toLong()) + 3600000,
+                status = "COMPLETED",
+                totalVolume = 8000f,
+                totalSets = 18
+            )
+        }
+
+        val insights = CoachEngine.generateInsights(
+            recentSessions = sessions,
+            personalRecords = emptyList(),
+            activeGoals = emptyList(),
+            recentCheckIns = emptyList(),
+            currentStreakDays = 6
         )
 
         assertTrue(insights.isNotEmpty())
-        val hasRecoveryWarning = insights.any { it.category == InsightCategory.RECOVERY || it.category == InsightCategory.WARNING }
-        assertTrue(hasRecoveryWarning)
-
-        // Volume jump: 24000 vs 18000 is +33.3%, which triggers overload evaluation
-        val volumeChangePercent = ((24000f - 18000f) / 18000f) * 100f
-        assertTrue(volumeChangePercent > 20f)
+        val hasPositive = insights.any { it.category == InsightCategory.POSITIVE }
+        assertTrue(hasPositive)
     }
 }

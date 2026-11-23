@@ -205,6 +205,15 @@ class WorkoutViewModel @Inject constructor(
         }
     }
 
+    fun swapExercise(oldExerciseId: Long, newExerciseId: Long) {
+        viewModelScope.launch {
+            val sessionExercises = workoutRepository.getSessionExercises(_uiState.value.sessionId)
+            val target = sessionExercises.find { it.exerciseId == oldExerciseId } ?: return@launch
+            workoutRepository.updateSessionExercise(target.copy(exerciseId = newExerciseId))
+            reloadCurrentSession()
+        }
+    }
+
     fun updateSet(setRecord: SetRecordEntity, newWeight: Float, newReps: Int) {
         viewModelScope.launch {
             val updated = setRecord.copy(weightKg = newWeight, reps = newReps)
